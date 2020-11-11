@@ -14,14 +14,12 @@
 
 from datetime import datetime
 from pathlib import Path
-from functools import partial
 import logging
-import multiprocessing
 import os
 
-from wirusy.DataExtractor import DataExtractor
+from wirusy.DataManager import DataExtractor
 
-# from wirusy.ModelFactory import ModelFactory
+CPU_COUNT_LOCAL = 1  # multiprocessing.cpu_count()
 
 # Blastp eval - do rozkmininenia
 FEATURE_LIST = [
@@ -31,9 +29,7 @@ FEATURE_LIST = [
     "gc_content/difference",
     "kmer-canonical/k6/correlation_kendalltau",
 ]
-CPU_COUNT_LOCAL = 1  # multiprocessing.cpu_count()
 
-data_filename = "---".join(FEATURE_LIST).replace("/", "-") + ".pickle"
 current_dir = Path(__file__).resolve().parent
 (current_dir / "logs").mkdir(exist_ok=True)
 
@@ -44,23 +40,8 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
-logging.info(f"Setting up up DataExtractor")
+
+
 extractor = DataExtractor(data_folder="data", tests_folder="tests", feature_list=FEATURE_LIST)
 cpu_count = int(os.environ.get("SLURM_JOB_CPUS_PER_NODE", CPU_COUNT_LOCAL))
-process_pool = multiprocessing.Pool(cpu_count)
-
-train_extraciton_function = partial(
-    extractor.extract_features_from_test_folder,
-    save_to_file=True,
-    filename=data_filename,
-)
-test_folders = list(extractor.tests_folder.glob("*"))
-chunksize = len(test_folders) // cpu_count
-
-logging.info(f"Start test_train_extraction using {cpu_count} CPUS and chunksize {chunksize}")
-for _ in process_pool.imap_unordered(
-    func=train_extraciton_function, iterable=test_folders, chunksize=chunksize
-):
-    pass
-process_pool.close()
-logging.info(f"Done.")
+extractor.run_data_extraction(cpu_count)

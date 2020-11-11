@@ -1,17 +1,17 @@
 import logging
-from multiprocessing import process
 import multiprocessing
 import os
 import pickle
 import json
 from pathlib import Path
+from functools import partial
+
 import numpy as np
 
 from Bio import SeqIO
 
-
-class DataExtractor:
-    def __init__(self, data_folder, tests_folder, feature_list=None):
+class DataManager:
+    def __init__(self, data_folder, tests_folder):
         with open(os.path.join(data_folder, "virus", "virus.json")) as f:
             self.virus_json = json.load(f)
         with open(os.path.join(data_folder, "host", "host.json")) as f:
@@ -24,8 +24,6 @@ class DataExtractor:
         self.host_fasta_folder = Path(os.path.join(data_folder, "host", "fasta"))
         self.features_folder = Path(os.path.join(data_folder, "features"))
         self.tests_folder = Path(tests_folder)
-        self.feature_list = feature_list if feature_list else None
-        self.feature_data_map = self.__load_feature_data(feature_list) if feature_list else None
 
     def get_fasta(self, ncbi_id):
         if ncbi_id in self.virus_json:
@@ -35,15 +33,42 @@ class DataExtractor:
         else:
             raise LookupError(f"Can't find {ncbi_id} in virus or host json file")
 
-    def get_features(self, virus, host):
-        assert self.feature_list, "Feature list not provided!"
-        index = self.features_index[(virus, host)]
-        x = np.array([self.feature_data_map[feature][index] for feature in self.feature_list])
-        return x
+class DataExtractor(DataManager):
+    
+    TRAIN_JSON = "train.json"
+    TEST_JSON = "test.json"
 
-    def extract_features_from_test_folder(self, test_folder, check_existing_file = True, save_to_file=False, filename="X_Y.p"):
-        TRAIN_JSON = "train.json"
-        TEST_JSON = "test.json"
+    def __init__(self, data_folder, tests_folder, feature_list):
+        super().__init__(data_folder, tests_folder)
+        self.feature_list = feature_list
+        self.feature_data_map = self.load_feature_data(feature_list)
+
+    def load_feature_data(self, feature_list):
+        return {
+            feature: pickle.load(open((self.features_folder / self.features_json[feature]["file"]), "rb"))
+            for feature in feature_list
+        }
+
+    def run_data_extraction(self, cpu_count):
+        data_filename = "---".join(self.feature_list).replace("/", "-") + ".pickle"
+        process_pool = multiprocessing.Pool(cpu_count)
+
+        train_extraciton_function = partial(
+            self.extract_features_from_test_folder,
+            filename=data_filename,
+        )
+        test_folders = list(self.tests_folder.glob("*"))
+        chunksize = len(test_folders) // cpu_count
+
+        logging.info(f"Start test_train_extraction using {cpu_count} CPUS and chunksize {chunksize}")
+        for _ in process_pool.imap_unordered(
+            func=train_extraciton_function, iterable=test_folders, chunksize=chunksize
+        ):
+            pass
+        process_pool.close()
+        logging.info(f"Done.")
+
+    def extract_features_from_test_folder(self, test_folder, filename, check_existing_file = True):
 
         process_info = multiprocessing.current_process().name
         x_train = []
@@ -51,11 +76,11 @@ class DataExtractor:
 
         if check_existing_file and (test_folder / filename).exists():
             logging.info(
-                f"Worker {process_info} skipping {test_folder / filename}, file exists! Returning data from file."
+                f"Worker {process_info} skipping {test_folder / filename}, file exists!"
             )
-            return pickle.load(open(test_folder / filename, "rb"))
+            return True
 
-        with open(test_folder / TRAIN_JSON) as fd:
+        with open(test_folder / self.TRAIN_JSON) as fd:
             train_data = json.load(fd)
             train_positive = train_data["positive"]
             train_negative = train_data["negative"]
@@ -82,15 +107,13 @@ class DataExtractor:
 
         X, Y = np.array(x_train), np.array(y_train)
 
-        if save_to_file:
-            with open(test_folder / filename, "wb") as fd:
-                pickle.dump([X, Y], fd)
-                logging.info(f"Worker {process_info} saved file {filename} in {test_folder}")
+        with open(test_folder / filename, "wb") as fd:
+            pickle.dump([X, Y], fd)
+            logging.info(f"Worker {process_info} saved file {filename} in {test_folder}")
 
-        return X, Y
+        return True
 
-    def __load_feature_data(self, feature_list):
-        return {
-            feature: pickle.load(open((self.features_folder / self.features_json[feature]["file"]), "rb"))
-            for feature in feature_list
-        }
+    def get_features(self, virus, host):
+        index = self.features_index[(virus, host)]
+        return np.array([self.feature_data_map[feature][index] for feature in self.feature_list])
+
