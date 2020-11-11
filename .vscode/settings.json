@@ -1,0 +1,7 @@
+{
+    "python.pythonPath": "/usr/bin/python",
+    "python.dataScience.jupyterServerURI": "local",
+    "python.formatting.provider": "black",
+    "logViewer.watch": ["logs/*"],
+    "python.formatting.blackArgs": ["-l", "120", "-t", "py38", ]
+}
