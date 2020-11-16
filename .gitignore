@@ -1,6 +1,7 @@
 data/
 tests/
-logs/
+virusDL/logs/
+virusDL/tensorboard_logs
 
 # Created by https://www.gitignore.io/api/code,linux,python,jupyternotebooks
 # Edit at https://www.gitignore.io/?templates=code,linux,python,jupyternotebooks

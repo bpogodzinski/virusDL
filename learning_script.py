@@ -9,6 +9,11 @@
   - co to n50, n100?
   - różnica między mean a min-max
   - problem normalizacji (wartości znormalizowane i nieznormalizowane)
+
+    
+
+  Blastp eval - do rozkmininenia
+
 """
 
 
@@ -17,11 +22,11 @@ from pathlib import Path
 import logging
 import os
 
-from wirusy.DataManager import DataExtractor
+from virusDL import CPU_COUNT_LOCAL
+from virusDL.DataManager import DataExtractor
+# from virusDL.models.SimpleDeepLearningModel import SimpleDeepLearningModel
+# from virusDL.ModelManager import ModelManager
 
-CPU_COUNT_LOCAL = 1  # multiprocessing.cpu_count()
-
-# Blastp eval - do rozkmininenia
 FEATURE_LIST = [
     "blastn-rbo/eval10/rbo_unmerged_ranks_1000hits",
     "blastn/eval10/best_hsp_bitscore",
@@ -30,18 +35,27 @@ FEATURE_LIST = [
     "kmer-canonical/k6/correlation_kendalltau",
 ]
 
-current_dir = Path(__file__).resolve().parent
-(current_dir / "logs").mkdir(exist_ok=True)
-
-logging.basicConfig(
-    filename=f'logs/learning_script-{datetime.now().strftime("%d-%m-%Y_%H-%M-%S")}.log',
-    format="%(levelname)s:%(asctime)s %(message)s",
-    datefmt="[%d/%m/%Y %H:%M:%S]",
-    level=logging.INFO,
-)
-
-
 
 extractor = DataExtractor(data_folder="data", tests_folder="tests", feature_list=FEATURE_LIST)
 cpu_count = int(os.environ.get("SLURM_JOB_CPUS_PER_NODE", CPU_COUNT_LOCAL))
 extractor.run_data_extraction(cpu_count)
+
+# wyciągam dane do uczenia
+# loader = DataLoader(data_folder="data", tests_folder="tests", feature_list=FEATURE_LIST)
+# training_iterator = loader.get_training_data_iterator()
+
+# for test_folder, X, Y in training_iterator:
+#     name = f'{test_folder.parts[-1]}---{loader.get_filename(no_extension=True)}'
+#     model_manager = ModelManager(SimpleDeepLearningModel, X, Y, name)
+#     model_manager.run()
+
+
+"""wszystkie hosty z danym wirusem
+wyciągam pary i przewiduje
+roc
+precision treccall curve
+
+
+wirusy podobne do siebie
+randomwoy split nie daje generalizacji 
+"""
