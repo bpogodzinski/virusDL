@@ -22,33 +22,24 @@ from pathlib import Path
 import logging
 import os
 
-from virusDL import CPU_COUNT_LOCAL
-from virusDL.DataManager import DataExtractor
-# from virusDL.models.SimpleDeepLearningModel import SimpleDeepLearningModel
-# from virusDL.ModelManager import ModelManager
-
-FEATURE_LIST = [
-    "blastn-rbo/eval10/rbo_unmerged_ranks_1000hits",
-    "blastn/eval10/best_hsp_bitscore",
-    "crispr/pilercr-default/max_mismatch2",
-    "gc_content/difference",
-    "kmer-canonical/k6/correlation_kendalltau",
-]
+from virusDL import FEATURE_LIST, CPU_COUNT_LOCAL
+# from virusDL.DataManager import DataExtractor
+from virusDL.DataManager import DataLoader
+from virusDL.models.SimpleDeepLearningModel import SimpleDeepLearningModel
+from virusDL.ModelManager import ModelManager
 
 
-extractor = DataExtractor(data_folder="data", tests_folder="tests", feature_list=FEATURE_LIST)
-cpu_count = int(os.environ.get("SLURM_JOB_CPUS_PER_NODE", CPU_COUNT_LOCAL))
-extractor.run_data_extraction(cpu_count)
+# extractor = DataExtractor(data_folder="data", tests_folder="tests", feature_list=FEATURE_LIST)
+# cpu_count = int(os.environ.get("SLURM_JOB_CPUS_PER_NODE", CPU_COUNT_LOCAL))
+# extractor.run_data_extraction(cpu_count)
 
-# wyciągam dane do uczenia
-# loader = DataLoader(data_folder="data", tests_folder="tests", feature_list=FEATURE_LIST)
-# training_iterator = loader.get_training_data_iterator()
+loader = DataLoader(data_folder="data", tests_folder="tests", feature_list=FEATURE_LIST)
+train_test_iterator = loader.get_train_test_data_iterator()
 
-# for test_folder, X, Y in training_iterator:
-#     name = f'{test_folder.parts[-1]}---{loader.get_filename(no_extension=True)}'
-#     model_manager = ModelManager(SimpleDeepLearningModel, X, Y, name)
-#     model_manager.run()
-
+for test_folder, train_data, test_data in train_test_iterator:
+    model_manager = ModelManager(SimpleDeepLearningModel, train_data, test_data, test_folder)
+    model_manager.run()
+    model_manager.evaluate()
 
 """wszystkie hosty z danym wirusem
 wyciągam pary i przewiduje

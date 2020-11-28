@@ -79,11 +79,12 @@ class DataExtractor(DataManager):
     def extract_train_test_from_test_folder(self, test_folder, filename, check_existing_file=False):
 
         process_info = multiprocessing.current_process().name
-        test_filename = filename + ".test"
+        filename_test = filename + ".test"
         x_train = []
         y_train = []
         x_test = []
         y_test = []
+        ids_test = []
 
         if check_existing_file and (test_folder / filename).exists():
             logging.info(f"Worker {process_info} skipping {test_folder / filename}, file exists!")
@@ -119,17 +120,17 @@ class DataExtractor(DataManager):
                 pickle.dump([X_train, Y_train], fd)
                 logging.info(f"Worker {process_info} saved file {filename} in {test_folder}")
 
-        if check_existing_file and (test_folder / test_filename).exists():
-            logging.info(f"Worker {process_info} skipping {test_folder / test_filename}, file exists!")
+        if check_existing_file and (test_folder / filename_test).exists():
+            logging.info(f"Worker {process_info} skipping {test_folder / filename_test}, file exists!")
         else:
             with open(test_folder / self.TEST_JSON) as fd:
                 train_viruses = json.load(fd)["vids"]
                 all_hosts = list(self.host_fasta_folder.glob("*"))
                 len_all = len(train_viruses) * len(all_hosts)
                 counter_all = 1
-                for host in all_hosts:
-                    host_id = host.parts[-1].split(".")[0]
-                    for virus_id in train_viruses:
+                for virus_id in train_viruses:
+                    for host in all_hosts:
+                        host_id = host.parts[-1].split(".")[0]
                         logging.info(
                             f"Worker {process_info} doing test {[virus_id, host_id]} from {test_folder} {counter_all}/{len_all}"
                         )
@@ -137,12 +138,13 @@ class DataExtractor(DataManager):
                         y = int((self.positive_pairs[["virus", "host"]].values == [virus_id, host_id]).all(axis=1).any())
                         x_test.append(x)
                         y_test.append(y)
+                        ids_test.append([virus_id, host_id])
                         counter_all += 1
-
-            X_test, Y_test = np.array(x_test), np.array(y_test)
-            with open(test_folder / filename, "wb") as fd:
-                pickle.dump([X_test, Y_test], fd)
-                logging.info(f"Worker {process_info} saved file {test_filename} in {test_folder}")
+                        
+            X_test, Y_test, ID_test = np.array(x_test), np.array(y_test), np.array(ids_test)
+            with open(test_folder / filename_test, "wb") as fd:
+                pickle.dump([X_test, Y_test, ID_test], fd)
+                logging.info(f"Worker {process_info} saved file {filename_test} in {test_folder}")
         
         return True
 
@@ -162,7 +164,8 @@ class DataLoader(DataManager):
             return filename.split(".")[0]
         return filename
 
-    def get_training_data_iterator(self):
-        for test_folder in self.tests_folder.glob("-225"):
-            X, Y = pickle.load(open(test_folder / self.get_filename(), "rb"))
-            yield test_folder, X, Y
+    def get_train_test_data_iterator(self):
+        for test_folder in self.tests_folder.glob("*"):
+            train = pickle.load(open(test_folder / self.get_filename(), "rb"))
+            test = pickle.load(open(test_folder / (self.get_filename() + '.test'), "rb"))
+            yield test_folder, train, test
