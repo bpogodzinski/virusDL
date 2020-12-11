@@ -1,0 +1,11 @@
+{
+   "taxlevels": [
+      "species",
+      "genus",
+      "family",
+      "order",
+      "class",
+      "phylum",
+      "superkingdom"
+   ]
+}
