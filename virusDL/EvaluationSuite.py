@@ -1,17 +1,15 @@
 from pathlib import Path
 import ray
 import json
-from evaluation.evaluate1_hosts_sorted_to_hosts_best import host_best
+from evaluation.evaluate0_create_result_json import concat_and_sort_results
+from evaluation.evaluate1_hosts_sorted_to_hosts_best import filter_best_hosts
 
 ray.init(num_cpus=2)
-host_sorted = None
+tests_folder = Path('/home/panda/workspace/wirusy/tests')
 
-with open(Path('/home/panda/workspace/wirusy/whole.json')) as fd:
-    host_sorted = json.load(fd)
-
-
-# ściągamy wszystkie pliki evaluacji, robimy graf\
-best_hosts = host_best.remote(host_sorted)
+# ściągamy wszystkie pliki evaluacji, robimy graf
+host_sorted = concat_and_sort_results.remote(tests_folder)
+best_hosts = filter_best_hosts.remote(host_sorted)
 
 
 result = ray.get(best_hosts)
