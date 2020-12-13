@@ -1,26 +1,12 @@
-import json
+from collections import defaultdict
 import ray
 
-@ray.remote
-def host_best(host_sorted_path):
-    with open(host_sorted_path) as fd:
-        d = json.load(fd)
-    d1 = {}
-    for vid, hits_lst in d.items():
-        d1[vid] = []
-        if hits_lst:
-            best_score = hits_lst[0][1]
-            for hid, score in hits_lst:
-                if score == best_score:
-                    d1[vid].append([hid, score])
-                else:
-                    break
-
-    in_json_path = host_sorted_path
-    output_path = in_json_path.parent
-    oh = open(output_path.joinpath('hosts_best.json'), 'w')
-    json.dump(d1, oh, indent=3)
-    oh.close()
-    return d1
-
-
+@ray.remote(num_cpus=1)
+def host_best(host_sorted):
+    host_best_result = defaultdict(list)
+    for virus_id, hits_list in host_sorted.items():
+        best_score = hits_list[0][1]
+        for host_id, score in hits_list:
+            if score == best_score:
+                host_best_result[virus_id].append([host_id, score])
+    return host_best_result
