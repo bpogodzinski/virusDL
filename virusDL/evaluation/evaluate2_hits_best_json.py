@@ -1,61 +1,45 @@
 import argparse
+from collections import defaultdict
 import json
 from pathlib import Path
 
 import numpy as np
 
-from __CONFIG__ import DATA1_PATH, DATA1_VIRUS_PATH, DATA1_HOST_PATH, TAXONOMY_RANKS
-import functions
+from .__CONFIG__ import DATA1_PATH, DATA1_VIRUS_PATH, DATA1_HOST_PATH, TAXONOMY_RANKS
+from .functions import compare
 import ray
-
-parser = argparse.ArgumentParser(description='')
-parser.add_argument('--json', dest='json', help="json with best hits", type=argparse.FileType('r'), required=True)
-args = parser.parse_args()
 
 
 @ray.remote
-def run():
-    fh = open(DATA1_VIRUS_PATH.joinpath('virus.json'))
-    vjson = json.load(fh)
-    fh.close()
+def evaluate_taxonomy_performance(best_hosts):
+    with open(DATA1_VIRUS_PATH.joinpath('virus.json')) as fd:
+        virus_json = json.load(fd)
 
-    fh = open(DATA1_HOST_PATH.joinpath('host.json'))
-    hjson = json.load(fh)
-    fh.close()
+    with open(DATA1_HOST_PATH.joinpath('host.json')) as fd:
+        host_json = json.load(fd)
 
-    # Interaction json
-    fh = open(DATA1_PATH.joinpath('interactions.json'))
-    ijson = json.load(fh)
-    fh.close()
+    with open('/home/panda/workspace/wirusy/virusDL/evaluation/interactions.json') as fd:
+        interaction_json = json.load(fd)
 
-    # Taxlevels
-    fh = open(DATA1_PATH.joinpath('interactions.taxlevels.json'))
-    d = json.load(fh)
-    TAX_LEVELS = d['taxlevels']
-    fh.close()
+    TAX_LEVELS = TAXONOMY_RANKS[::-1]
 
-
-    db = json.load(args.json)
-    args.json.close()
-
-    d = {}
-    for vid, hids in db.items():
-        d[vid] = []
+    d = defaultdict(list)
+    for virus_id, hosts in best_hosts.items():
         for taxlevel in TAX_LEVELS:
             match = False
-            for tup in hids:
-                hid = tup[0]
-                match = functions.compare(vjson[vid], hjson[hid], taxlevel)
+            for entry in hosts:
+                host_id = entry[0]
+                match = compare(virus_json[virus_id], host_json[host_id], taxlevel)
                 if match:
                     break
-            d[vid].append(match)
+            d[virus_id].append(match)
 
     l = [[0, 0] for _i in TAX_LEVELS]
-    for vid, imatches in ijson.items():
+    for virus_id, imatches in interaction_json.items():
         for i, taxlevel in enumerate(TAX_LEVELS):
             if imatches[i]:
                 l[i][1] += 1
-                if d[vid][i]:
+                if d[virus_id][i]:
                     l[i][0] += 1
 
 
@@ -64,10 +48,5 @@ def run():
     for o, e in l:
         d1[TAX_LEVELS[i]] = o/e*100
         i += 1
-    in_json_path = Path(args.json.name)
-    output_path = in_json_path.parent
-    oh = open(output_path.joinpath('performance.json'), 'w')
-    json.dump(d1, oh, indent=3)
-    oh.close()
 
-run()
+    return d1
