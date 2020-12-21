@@ -24,33 +24,6 @@ def evaluate_sorted_hosts(host_sorted):
     worst_value = max_val if distance else min_val
     null_value = max_val if distance else 0.0
 
-    # TODO: Check this output path
-    run_name = str(output_path)
-    if 'pvalue' in run_name:
-        null_value = 1.0
-    if 'mash' in run_name:
-        null_value = 1.0
-    if 'correlation_kendalltau' in run_name:
-        null_value = 2.0
-    if 'correlation_pearson' in run_name:
-        null_value = 2.0
-    if 'google' in run_name:
-        null_value = 1.0
-    if 'gc_content' in run_name:
-        null_value = 1.0
-    if 'mean_normalization' in run_name:
-        null_value = -1.0
-    if 'dna2vec' in run_name:
-        null_value = 1.0
-    if 'pearsonr' in run_name:
-        null_value = -1.0
-    if 'cosine' in run_name:
-        null_value = 1.0
-    if '-kendalltau' in run_name:
-        null_value = -1.0
-    if 'wish' in run_name:
-        null_value = worst_value
-
     host_sorted_info = {
         'is_distance': distance,
         'missing_values': missing_values,
