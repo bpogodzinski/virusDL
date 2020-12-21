@@ -1,12 +1,10 @@
 import ray
-import argparse
 import json
 import pickle
 from io import BytesIO
 
 import sklearn.metrics as metrics
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 from .__CONFIG__ import DATA1_PATH, DATA1_VIRUS_PATH, DATA1_HOST_PATH
 
@@ -53,6 +51,6 @@ def prc_evaluation(host_sorted, host_sorted_info):
     plt.ylabel('Precision')
 
     plot = BytesIO()
-    FigureCanvas(plt).print_png(plot)
+    plt.savefig(plot, format='png')
 
     return prc_auc, plot

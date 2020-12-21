@@ -5,7 +5,6 @@ from io import BytesIO
 import ray
 import matplotlib.pyplot as plt
 from sklearn import metrics
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 from .__CONFIG__ import DATA1_PATH, DATA1_VIRUS_PATH, DATA1_HOST_PATH
 
@@ -52,6 +51,6 @@ def roc_evaluation(host_sorted, host_sorted_info):
     plt.xlabel('False Positive Rate')
     
     plot = BytesIO()
-    FigureCanvas(plt).print_png(plot)
+    plt.savefig(plot, format='png')
 
     return roc_auc, plot
