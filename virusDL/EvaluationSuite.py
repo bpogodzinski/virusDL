@@ -11,19 +11,22 @@ from evaluation.evaluate4_positive_negative import positive_negative_scores_dist
 from evaluation.evaluate8_threshold_sens_spec import evaluate_binary_classification
 from evaluation.evaluate9_null_value import evaluate_sorted_hosts
 from evaluation.evaluate10_roc_curve_full import roc_evaluation
+from evaluation.evaluate11_prc import prc_evaluation
 
 ray.init(num_cpus=2)
 tests_folder = Path('/home/panda/workspace/wirusy/tests')
 
-# ściągamy wszystkie pliki evaluacji, robimy graf
+# ściągamy wszystkie pliki evaluacji, robimy graf zależności
+
 host_sorted = concat_and_sort_results.remote(tests_folder)
-# best_hosts = filter_best_hosts.remote(host_sorted)
-# tax_performance = evaluate_taxonomy_performance.remote(best_hosts)
-# host_rank_distribution, rank_distribution_plot = true_host_rank_distribution.remote(host_sorted)
-# scores_distribution, scores_plot = positive_negative_scores_distribution.remote(host_sorted)
-# model_evaluation_stats = evaluate_binary_classification.remote(host_sorted)
+best_hosts = filter_best_hosts.remote(host_sorted)
+tax_performance = evaluate_taxonomy_performance.remote(best_hosts)
+host_rank_distribution, rank_distribution_plot = true_host_rank_distribution.remote(host_sorted)
+scores_distribution, scores_plot = positive_negative_scores_distribution.remote(host_sorted)
+model_evaluation_stats = evaluate_binary_classification.remote(host_sorted)
 host_sorted_info = evaluate_sorted_hosts.remote(host_sorted)
 roc_auc, roc_plot = roc_evaluation.remote(host_sorted, host_sorted_info)
+prc_auc, prc_plot = prc_evaluation.remote(host_sorted, host_sorted_info)
 
 pp(ray.get(model_evaluation_stats))
 # do jednego katalogu results z datą
