@@ -1,74 +1,46 @@
-import ray
-import argparse
 import json
 import pickle
-from pathlib import Path
+from io import BytesIO
 
-import numpy as np
-import matplotlib.mlab as mlab
+import ray
 import matplotlib.pyplot as plt
 from sklearn import metrics
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
-import functions
-from __CONFIG__ import DATA1_PATH, DATA1_VIRUS_PATH, DATA1_HOST_PATH
+from .__CONFIG__ import DATA1_PATH, DATA1_VIRUS_PATH, DATA1_HOST_PATH
 
+@ray.remote(num_returns=2)
+def roc_evaluation(host_sorted, host_sorted_info):
+    predictions = {}
+    for vid in host_sorted:
+        for hid, score in host_sorted[vid]:
+            predictions[(vid, hid)] = score
 
-parser = argparse.ArgumentParser(description='Lorem ipsum')
-parser.add_argument('-j', '--j', '--json', dest='json', type=argparse.FileType('r'),
-                    help='hits_sorted.json', required=True)
-args = parser.parse_args()
+    with open(DATA1_VIRUS_PATH.joinpath('virus.json')) as fh:
+        virus_json = json.load(fh)
 
+    with open(DATA1_HOST_PATH.joinpath('host.json')) as fh:
+        host_json = json.load(fh)
 
-@ray.remote
-def run():
-    d = json.load(args.json)
-    args.json.close()
-    dpred = {}
-    for vid in d:
-        for hid, score in d[vid]:
-            dpred[(vid, hid)] = score
-
-    in_json_path = Path(args.json.name)
-    output_path = in_json_path.parent
-
-
-    fh = open(DATA1_VIRUS_PATH.joinpath('virus.json'))
-    vjson = json.load(fh)
-    fh.close()
-
-
-    fh = open(DATA1_HOST_PATH.joinpath('host.json'))
-    hjson = json.load(fh)
-    fh.close()
-
-    fh = open(DATA1_PATH.joinpath('pairs.p'), 'rb')
-    pairs = pickle.load(fh)
-    fh.close()
-
-
-    fh = open(output_path.joinpath('hosts_sorted.info.json'))
-    info = json.load(fh)
-    fh.close()
-
-
+    with open(DATA1_PATH.joinpath('pairs.p'), 'rb') as fh:
+        pairs = pickle.load(fh)
 
     y = []
     x = []
-    for vid in vjson:
-        for hid in hjson:
+    for vid in virus_json:
+        for hid in host_json:
             pair = (vid, hid)
             label = 1 if pair in pairs['positive'] else 0
-            if pair in dpred:
-                score = dpred[pair]
-                if info['is_distance']:
-                    score = info['worst_value_observed'] - score
+            if pair in predictions:
+                score = predictions[pair]
+                if host_sorted_info['is_distance']:
+                    score = host_sorted_info['worst_value_observed'] - score
             else:
-                score = info['null_value']
+                score = host_sorted_info['null_value']
             y.append(label)
             x.append(score)
 
-
-    fpr, tpr, threshold = metrics.roc_curve(y, x)
+    fpr, tpr, _ = metrics.roc_curve(y, x)
     roc_auc = metrics.auc(fpr, tpr)
     plt.title('Receiver Operating Characteristic')
     plt.plot(fpr, tpr, 'b', label = 'AUC = %0.3f' % roc_auc)
@@ -78,12 +50,8 @@ def run():
     plt.ylim([0, 1])
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
-    plt.savefig(output_path.joinpath('roc_full.png'))
+    
+    plot = BytesIO()
+    FigureCanvas(plt).print_png(plot)
 
-
-
-    oh = open(output_path.joinpath('auc_full.txt'), 'w')
-    oh.write('{:.3f}'.format(roc_auc))
-    oh.close()
-
-run()
+    return roc_auc, plot
