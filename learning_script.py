@@ -24,10 +24,3 @@ loader = DataLoader(data_folder="data", tests_folder="tests", feature_list=FEATU
 #     model_manager.run()
 #     model_manager.evaluate()
 
-results = loader.tests_folder.rglob('results.json')
-result_dict = {}
-
-for file in results:
-    result_dict.update(json.load(open(file)))
-
-json.dump(result_dict, open('whole.json','w'))
