@@ -12,7 +12,7 @@ def positive_negative_scores_distribution(host_sorted):
     pairs = {}
     for pair_type in ['positive', 'negative']:
         pairs[pair_type] = set([])
-        fh = open(Path('/home/panda/workspace/wirusy/data/{}_pairs.csv'))
+        fh = open(Path(f'/home/panda/workspace/wirusy/data/{pair_type}_pairs.csv'))
         fh.readline()
         for line in fh:
             sl = line.strip().split(',')
@@ -68,6 +68,6 @@ def positive_negative_scores_distribution(host_sorted):
 
     # Save the figure in memory
     plot = BytesIO()
-    FigureCanvas(fig).print_png(plot, bbox_inches='tight')
+    FigureCanvas(fig).print_png(plot)
 
     return scores_distribution, plot

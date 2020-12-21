@@ -60,7 +60,7 @@ def true_host_rank_distribution(host_sorted):
     )
 
     # Save the figure in memory
-    image = BytesIO()
-    FigureCanvas(fig).print_png(image, bbox_inches='tight')
+    plot = BytesIO()
+    FigureCanvas(fig).print_png(plot)
 
-    return host_rank_distribution, image
+    return host_rank_distribution, plot
