@@ -71,12 +71,12 @@ def run_evaluation(tests_folder, result_dir = RESULT_DIR / f'eval_{datetime.now(
 
     roc_plot_result = ray.get(roc_plot)
     with open(result_dir / 'roc.png', 'wb') as fd:
-        fd.write(roc_plot_result)
+        fd.write(roc_plot_result.getvalue())
 
     prc_auc_result = ray.get(prc_auc)
-    with open(result_dir / 'prc-auc', 'w') as fd:
+    with open(result_dir / 'prc-auc.txt', 'w') as fd:
         fd.write(str(prc_auc_result))
 
     prc_plot_result = ray.get(prc_plot)
     with open(result_dir / 'prc.png', 'wb') as fd:
-        fd.write(prc_plot_result)
+        fd.write(prc_plot_result.getvalue())
