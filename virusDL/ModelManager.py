@@ -2,7 +2,7 @@ import json
 from json import load
 from pathlib import Path
 from itertools import groupby
-from typing import DefaultDict
+from collections import defaultdict
 from virusDL import TENSORBOARD_LOG_DIR, FEATURE_LIST
 from virusDL.DataManager import features_to_filename
 
@@ -35,8 +35,8 @@ class ModelManager:
 
     # pogrupuj 
     def evaluate(self):
-        result_dict = DefaultDict(list)
-        test_dict = DefaultDict(list)
+        result_dict = defaultdict(list)
+        test_dict = defaultdict(list)
         x_test = np.array([x for x in self.test_data[0]])
         pairs = np.array([pair for pair in self.test_data[2]])
         for pair, X in zip(pairs, x_test):

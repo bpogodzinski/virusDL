@@ -4,6 +4,7 @@ import logging
 
 CPU_COUNT_LOCAL = 1  # multiprocessing.cpu_count()
 CURRENT_DIR = Path(__file__).resolve().parent
+RESULT_DIR = CURRENT_DIR / 'results'
 LOG_DIR = CURRENT_DIR / 'logs'
 TENSORBOARD_LOG_DIR = CURRENT_DIR / 'tensorboard_logs'
 LOG_DIR.mkdir(exist_ok=True)

@@ -1,0 +1,6 @@
+ray
+numpy
+matplotlib
+scikit-learn
+tensorflow
+tensorflow-gpu

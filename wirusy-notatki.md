@@ -23,7 +23,7 @@
 * https://github.com/TeamHG-Memex/eli5
   * "ELI5 is a Python package which helps to debug machine learning classifiers and explain their predictions."
   * Do wskazywania interesujących fragmentów DNA
-* 
+
 
 # Podobne projekty
 
