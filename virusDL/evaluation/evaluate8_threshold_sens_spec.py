@@ -40,6 +40,7 @@ def evaluate_binary_classification(host_sorted, threshold = 0.5):
         sensitivity = true_positive/(true_positive+false_negative)
         specificity = true_negative/(true_negative+false_positive)
         accuracy = (true_positive+true_negative)/(true_positive+true_negative+false_positive+false_negative)
+        f_score = (true_positive)/(true_positive + (0.5 * (false_positive + false_negative)))
         result_stats = {
             'vids': len(true_positive_virus_ids),    
             'TP': true_positive,
@@ -49,6 +50,7 @@ def evaluate_binary_classification(host_sorted, threshold = 0.5):
             'sensitivity': sensitivity,
             'specificity': specificity,
             'accuracy': accuracy,
+            'fscore': f_score,
         }
 
     return result_stats
